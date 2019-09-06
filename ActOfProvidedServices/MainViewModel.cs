@@ -1,0 +1,216 @@
+﻿using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+
+namespace ActOfProvidedServices {
+	class MainViewModel : INotifyPropertyChanged {
+		public event PropertyChangedEventHandler PropertyChanged;
+		private void NotifyPropertyChanged([CallerMemberName] string propertyName = "", bool recalculate = true) {
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+		}
+
+		public DateTime? DateDischarged { get; set; }
+		public string TextOrganization { get; set; }
+		public string TextContract { get; set; }
+		public string TextPeriod { get; set; }
+
+		private string textWorkbookPath;
+		public string TextWorkbookPath { 
+		   get { return textWorkbookPath; }
+		   set {
+				if (value != textWorkbookPath) {
+					textWorkbookPath = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+		public string TextWorksheet { get; set; }
+
+
+		private ICommand commandSelectWorkbook;
+		public ICommand CommandSelectWorkbook {
+			get {
+				return commandSelectWorkbook ?? (commandSelectWorkbook = new CommandHandler(() => SelectWorkbookFile(), () => true));
+			}
+		}
+
+		private ICommand coomandExecute;
+		public ICommand CoomandExecute {
+			get {
+				return coomandExecute ?? (coomandExecute = new CommandHandler(() => Execute(), () => true));
+			}
+		}
+
+
+		private Visibility gridMainVisibility = Visibility.Visible;
+		public Visibility GridMainVisibility {
+			get { return gridMainVisibility; }
+			set {
+				if (value != gridMainVisibility) {
+					gridMainVisibility = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+		private Visibility gridResultVisibility = Visibility.Hidden;
+		public Visibility GridResultVisibility {
+			get { return gridResultVisibility; }
+			set {
+				if (value != gridResultVisibility) {
+					gridResultVisibility = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+		private string textResult;
+		public string TextResult {
+			get { return textResult; }
+			set {
+				if (value != textResult) {
+					textResult = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+		private int progressValue;
+		public int ProgressValue { 
+			get { return progressValue; } 
+			set {
+				if (value != progressValue) {
+					progressValue = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+
+
+
+		private ICommand commandCloseResults;
+		public ICommand CommandCloseResults {
+			get {
+				return commandCloseResults ?? (commandCloseResults = new CommandHandler(() => CloseResult(), () => CanUseButtonCloseResults));
+			}
+		}
+
+		private bool canUseButtonCloseResults = false;
+		public bool CanUseButtonCloseResults {
+			get {
+				return canUseButtonCloseResults;
+			}
+			set {
+				if (value != canUseButtonCloseResults) {
+					canUseButtonCloseResults = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+		public void CloseResult() {
+			TextResult = string.Empty;
+			ProgressValue = 0;
+			GridResultVisibility = Visibility.Hidden;
+			GridMainVisibility = Visibility.Visible;
+		}
+
+
+
+
+		public void SelectWorkbookFile() {
+			OpenFileDialog openFileDialog = new OpenFileDialog();
+			openFileDialog.Filter = "Книга Excel (*.xls*)|*.xls*";
+			openFileDialog.CheckFileExists = true;
+			openFileDialog.CheckPathExists = true;
+			openFileDialog.Multiselect = false;
+			openFileDialog.RestoreDirectory = true;
+
+			if (openFileDialog.ShowDialog() == true)
+				TextWorkbookPath = openFileDialog.FileName;
+		}
+
+
+
+
+
+		public void Execute() {
+			string errors = string.Empty;
+
+			if (string.IsNullOrEmpty(TextWorkbookPath))
+				errors = "Не выбран файл книги Excel" + Environment.NewLine;
+
+			if (string.IsNullOrEmpty(TextWorksheet))
+				errors += "Не указано имя листа";
+
+			if (!string.IsNullOrEmpty(errors)) {
+				MessageBox.Show(Application.Current.MainWindow,
+					"Невозможно выполнить обработку: " + Environment.NewLine + errors,
+					string.Empty,
+					MessageBoxButton.OK,
+					MessageBoxImage.Information);
+				return;
+			}
+
+			GridMainVisibility = Visibility.Hidden;
+			GridResultVisibility = Visibility.Visible;
+
+			BackgroundWorker bw = new BackgroundWorker();
+			bw.ProgressChanged += Bw_ProgressChanged;
+			bw.WorkerReportsProgress = true;
+			bw.DoWork += Bw_DoWork;
+			bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
+			bw.RunWorkerAsync();
+		}
+
+		private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
+			CanUseButtonCloseResults = true;
+
+			if (e.Error != null) {
+				MessageBox.Show(Application.Current.MainWindow,
+					e.Error.Message + Environment.NewLine + e.Error.StackTrace,
+					"Ошибки во время выполнения",
+					MessageBoxButton.OK,
+					MessageBoxImage.Error);
+				return;
+			}
+
+			ProgressValue = 100;
+
+			MessageBox.Show(Application.Current.MainWindow,
+					"Выполнение завершено",
+					string.Empty,
+					MessageBoxButton.OK,
+					MessageBoxImage.Information);
+		}
+
+		private void Bw_DoWork(object sender, DoWorkEventArgs e) {
+			MainModel mainModel = new MainModel(
+				(sender as BackgroundWorker),
+				TextWorkbookPath,
+				TextWorksheet);
+			mainModel.CreateAct(TextOrganization,
+					   TextPeriod,
+					   TextContract,
+					   DateDischarged.HasValue ? DateDischarged.Value.ToShortDateString() : "");
+		}
+
+		private void Bw_ProgressChanged(object sender, ProgressChangedEventArgs e) {
+			ProgressValue = e.ProgressPercentage;
+
+			if (e.UserState != null)
+				TextResult += DateTime.Now.ToLongTimeString() + ": " + 
+					e.UserState.ToString() + Environment.NewLine;
+		}
+	}
+}
