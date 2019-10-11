@@ -12,6 +12,7 @@ namespace ActOfProvidedServices {
 		private readonly BackgroundWorker bw;
 		private readonly string workbookFilePath;
 		private readonly string worksheetName;
+		private string template = string.Empty;
 
 		public MainModel(BackgroundWorker bw,
 			string workbookFilePath,
@@ -21,8 +22,33 @@ namespace ActOfProvidedServices {
 			this.worksheetName = worksheetName;
 		}
 
-		public void CreateAct(string organization, string period, string contract, string dateDischarged) {
+		public enum Type {
+			Renessans,
+			VTB,
+			Rosgosstrakh,
+			Reso
+		}
+
+		public void CreateAct(Type type, string period, string contract, string dateDischarged) {
 			ExcelGeneral excelGeneral = new ExcelGeneral(bw);
+
+			switch (type) {
+				case Type.Renessans:
+					template = "TemplateRenessans.xlsx";
+					break;
+				case Type.VTB:
+					template = "TemplateVTB.xlsx";
+					break;
+				case Type.Rosgosstrakh:
+					template = "TemplateRosgosstrakh.xlsx";
+					break;
+				case Type.Reso:
+					template = "TemplateReso.xlsx";
+					break;
+				default:
+					bw.ReportProgress((int)progressCurrent, "!!! Неизвестный тип организации, пропуск: " + type);
+					break;
+			}
 
 			using (DataTable dataTable = excelGeneral.ReadExcelFile(workbookFilePath, worksheetName)) {
 				bw.ReportProgress((int)progressCurrent, "Считано строк: " + dataTable.Rows.Count);
@@ -38,16 +64,23 @@ namespace ActOfProvidedServices {
 				ItemTreatment currentTreatment = null;
 
 				double progressStep = 20.0d / (double)dataTable.Rows.Count;
+				int i = 0;
 				foreach (DataRow dataRow in dataTable.Rows) {
+					i++;
 					try {
 						bw.ReportProgress((int)(progressCurrent += progressStep));
 						string patientDocuments = dataRow["F2"].ToString();
-						if (string.IsNullOrEmpty(patientDocuments) ||
-							patientDocuments.Equals("№ полиса"))
+						if (string.IsNullOrEmpty(patientDocuments)) {
+							bw.ReportProgress((int)progressCurrent, "!!! Отсутсвует номер полиса в строке: " + i + ", пропуск");
+							continue;
+						} else if (patientDocuments.Equals("№ полиса"))
 							continue;
 
 						string patientCode = dataRow["F5"].ToString();
-						string patientName = ClearNameString(dataRow["F1"].ToString());
+						string patientName = dataRow["F1"].ToString();
+
+						if (type == Type.Renessans)
+							patientName = ClearNameString(patientName);
 
 						if (currentPatient != null &&
 							!patientCode.Equals(currentPatient.Code)) {
@@ -63,13 +96,26 @@ namespace ActOfProvidedServices {
 						if (currentPatient == null) {
 							currentPatient = new ItemPatient() {
 								Name = patientName,
-								Documents = "№ СП: " + patientDocuments,
+								Documents = patientDocuments,
 								Code = patientCode
 							};
+
+							if (type == Type.Renessans ||
+								type == Type.Reso)
+								currentPatient.Documents = "№ СП: " + currentPatient.Documents;
 						}
 
 						string treatmentDoctor = ClearNameString(dataRow["F16"].ToString());
 						string treatmentDate = dataRow["F7"].ToString().Replace(" 0:00:00", "");
+						string treatmentFilial = dataRow["F15"].ToString();
+						if (treatmentFilial.Equals("12"))
+							treatmentFilial = "СУЩ";
+						else if (treatmentFilial.Equals("5"))
+							treatmentFilial = "М-СРЕТ";
+						else if (treatmentFilial.Equals("1"))
+							treatmentFilial = "МДМ";
+						else if (treatmentFilial.Equals("6"))
+							treatmentFilial = "КУТУЗ";
 
 						if (currentTreatment != null &&
 							(!treatmentDoctor.Equals(currentTreatment.Doctor) ||
@@ -81,7 +127,8 @@ namespace ActOfProvidedServices {
 						if (currentTreatment == null) {
 							currentTreatment = new ItemTreatment() {
 								Doctor = treatmentDoctor,
-								Date = treatmentDate
+								Date = treatmentDate,
+								Filial = treatmentFilial
 							};
 						}
 
@@ -110,7 +157,9 @@ namespace ActOfProvidedServices {
 						}
 
 						currentTreatment.TreatmentCostTotal += serviceCount * serviceCost;
-					} catch (Exception) { }
+					} catch (Exception e) {
+						bw.ReportProgress((int)progressCurrent, "!!! Строка: " + i + ", ошибка: " + e.Message);
+					}
 				}
 
 				if (currentPatient != null) {
@@ -128,8 +177,8 @@ namespace ActOfProvidedServices {
 
 				bw.ReportProgress((int)progressCurrent, "Выгрузка информации в акт о выполненных работах");
 
-				string resultFile = excelGeneral.WritePatientsToExcel(
-					patients, "Акт о выполненных работах", "Template.xlsx", "Данные");
+				string resultFile = excelGeneral.WritePatientsToExcelRenessans(
+					patients, type, "Акт о выполненных работах", template, "Данные");
 
 				if (string.IsNullOrEmpty(resultFile)) {
 					bw.ReportProgress((int)progressCurrent, "Не удалось записать данные в файл");
@@ -140,13 +189,8 @@ namespace ActOfProvidedServices {
 				bw.ReportProgress((int)progressCurrent, "Данные записаны в файл: " + resultFile);
 				bw.ReportProgress((int)progressCurrent, "Применение форматирования. Пост-обработка");
 
-				if (excelGeneral.Process(resultFile,
-							 progressCurrent,
-							 organization,
-							 period,
-							 contract,
-							 dateDischarged,
-							 patients))
+				if (excelGeneral.WriteEndingRenessans(type, resultFile, progressCurrent, period,
+					contract, dateDischarged, patients))
 					bw.ReportProgress(100, "Обработка завершена успешно");
 			}
 		}

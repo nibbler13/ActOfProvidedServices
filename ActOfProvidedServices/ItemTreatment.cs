@@ -10,6 +10,7 @@ namespace ActOfProvidedServices {
 		public string Date { get; set; }
 		public List<string> Diagnoses { get; set; } = new List<string>();
 		public double TreatmentCostTotal { get; set; }
+		public string Filial { get; set; }
 		public List<ItemService> Services { get; set; } = new List<ItemService>();
 	}
 }

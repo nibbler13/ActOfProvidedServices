@@ -17,7 +17,7 @@ namespace ActOfProvidedServices {
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
-		public DateTime? DateDischarged { get; set; }
+		public DateTime? DateDischarged { get; set; } = DateTime.Now;
 		public string TextOrganization { get; set; }
 		public string TextContract { get; set; }
 		public string TextPeriod { get; set; }
@@ -118,16 +118,20 @@ namespace ActOfProvidedServices {
 			}
 		}
 
+		public bool IsCheckedRenessans { get; set; }
+		public bool IsCheckedVTB { get; set; }
+		public bool IsCheckedRosgosstrakh { get; set; }
+		public bool IsCheckedResoGaranty { get; set; }
+
+
+
 		public void CloseResult() {
 			TextResult = string.Empty;
 			ProgressValue = 0;
 			GridResultVisibility = Visibility.Hidden;
 			GridMainVisibility = Visibility.Visible;
 		}
-
-
-
-
+		
 		public void SelectWorkbookFile() {
 			OpenFileDialog openFileDialog = new OpenFileDialog();
 			openFileDialog.Filter = "Книга Excel (*.xls*)|*.xls*";
@@ -151,7 +155,11 @@ namespace ActOfProvidedServices {
 				errors = "Не выбран файл книги Excel" + Environment.NewLine;
 
 			if (string.IsNullOrEmpty(TextWorksheet))
-				errors += "Не указано имя листа";
+				errors += "Не указано имя листа" + Environment.NewLine;
+
+			if (!IsCheckedRenessans && !IsCheckedResoGaranty &&
+				!IsCheckedRosgosstrakh && !IsCheckedVTB)
+				errors += "Не выбрана организация";
 
 			if (!string.IsNullOrEmpty(errors)) {
 				MessageBox.Show(Application.Current.MainWindow,
@@ -165,12 +173,13 @@ namespace ActOfProvidedServices {
 			GridMainVisibility = Visibility.Hidden;
 			GridResultVisibility = Visibility.Visible;
 
-			BackgroundWorker bw = new BackgroundWorker();
-			bw.ProgressChanged += Bw_ProgressChanged;
-			bw.WorkerReportsProgress = true;
-			bw.DoWork += Bw_DoWork;
-			bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
-			bw.RunWorkerAsync();
+			using (BackgroundWorker bw = new BackgroundWorker()) {
+				bw.ProgressChanged += Bw_ProgressChanged;
+				bw.WorkerReportsProgress = true;
+				bw.DoWork += Bw_DoWork;
+				bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
+				bw.RunWorkerAsync();
+			}
 		}
 
 		private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e) {
@@ -199,10 +208,23 @@ namespace ActOfProvidedServices {
 				(sender as BackgroundWorker),
 				TextWorkbookPath,
 				TextWorksheet);
-			mainModel.CreateAct(TextOrganization,
-					   TextPeriod,
-					   TextContract,
-					   DateDischarged.HasValue ? DateDischarged.Value.ToShortDateString() : "");
+
+			MainModel.Type type;
+			if (IsCheckedRenessans)
+				type = MainModel.Type.Renessans;
+			else if (IsCheckedResoGaranty)
+				type = MainModel.Type.Reso;
+			else if (IsCheckedRosgosstrakh)
+				type = MainModel.Type.Rosgosstrakh;
+			else if (IsCheckedVTB)
+				type = MainModel.Type.VTB;
+			else {
+				(sender as BackgroundWorker).ReportProgress(0, "!!! Неизвестный тип организации, пропуск");
+				return;
+			}
+
+			mainModel.CreateAct(type, TextPeriod, TextContract,
+				DateDischarged.HasValue ? DateDischarged.Value.ToShortDateString() : "");
 		}
 
 		private void Bw_ProgressChanged(object sender, ProgressChangedEventArgs e) {

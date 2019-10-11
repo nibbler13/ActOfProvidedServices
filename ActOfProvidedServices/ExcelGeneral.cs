@@ -101,7 +101,9 @@ namespace ActOfProvidedServices {
 						} else
 							sheetName += "$";
 
+#pragma warning disable CA2100 // Review SQL queries for security vulnerabilities
 						comm.CommandText = "Select * from [" + sheetName + "]";
+#pragma warning restore CA2100 // Review SQL queries for security vulnerabilities
 						comm.Connection = conn;
 
 						using (OleDbDataAdapter oleDbDataAdapter = new OleDbDataAdapter()) {
@@ -147,13 +149,6 @@ namespace ActOfProvidedServices {
 
 		protected void AddBoldBorder(Excel.Range range) {
 			try {
-				//foreach (Excel.XlBordersIndex item in new Excel.XlBordersIndex[] {
-				//	Excel.XlBordersIndex.xlDiagonalDown,
-				//	Excel.XlBordersIndex.xlDiagonalUp,
-				//	Excel.XlBordersIndex.xlInsideHorizontal,
-				//	Excel.XlBordersIndex.xlInsideVertical}) 
-				//	range.Borders[item].LineStyle = Excel.Constants.xlNone;
-
 				foreach (Excel.XlBordersIndex item in new Excel.XlBordersIndex[] {
 					Excel.XlBordersIndex.xlEdgeBottom,
 					Excel.XlBordersIndex.xlEdgeLeft,
@@ -167,152 +162,6 @@ namespace ActOfProvidedServices {
 			} catch (Exception e) {
 				bw.ReportProgress(0, e.Message + Environment.NewLine + e.StackTrace);
 			}
-		}
-
-		public string WritePatientsToExcel(List<ItemPatient> patients, string resultFilePrefix, string templateFileName,
-			string sheetName = "", bool createNew = true) {
-			IWorkbook workbook = null;
-			ISheet sheet = null;
-			string resultFile = string.Empty;
-
-			if (createNew) {
-				if (!CreateNewIWorkbook(resultFilePrefix, templateFileName,
-					out workbook, out sheet, out resultFile, sheetName))
-					return string.Empty;
-			} else {
-				try {
-					using (FileStream stream = new FileStream(templateFileName, FileMode.Open, FileAccess.Read))
-						workbook = new XSSFWorkbook(stream);
-
-					sheet = workbook.GetSheet(sheetName);
-					resultFile = templateFileName;
-				} catch (Exception e) {
-					bw.ReportProgress(0, e.Message + Environment.NewLine + e.StackTrace);
-					return string.Empty;
-				}
-			}
-
-			int rowNumber = 16;
-			IFont fontBold9 = workbook.CreateFont();
-			IFont fontBold8 = workbook.CreateFont();
-			IFont fontNormal8 = workbook.CreateFont();
-			fontBold9.FontName = "Calibri";
-			fontBold8.FontName = "Calibri";
-			fontNormal8.FontName = "Calibri";
-			fontBold9.FontHeightInPoints = 9;
-			fontBold8.FontHeightInPoints = 8;
-			fontNormal8.FontHeightInPoints = 8;
-			fontBold9.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
-			fontBold8.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
-			fontNormal8.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Normal;
-			ICellStyle cellStyleBold9 = workbook.CreateCellStyle();
-			ICellStyle cellStyleBold8 = workbook.CreateCellStyle();
-			ICellStyle cellStyleNormal8 = workbook.CreateCellStyle();
-			ICellStyle cellStyleBold9BorderLeft = workbook.CreateCellStyle();
-			ICellStyle cellStyleBold9BorderBottomTop = workbook.CreateCellStyle();
-			ICellStyle cellStyleBold9BorderRight = workbook.CreateCellStyle();
-
-			cellStyleBold9BorderLeft.BorderLeft = BorderStyle.Thin;
-			cellStyleBold9BorderLeft.BorderRight = BorderStyle.None;
-			cellStyleBold9BorderLeft.BorderTop = BorderStyle.Thin;
-			cellStyleBold9BorderLeft.BorderBottom = BorderStyle.Thin;
-
-			cellStyleBold9BorderRight.BorderLeft = BorderStyle.None;
-			cellStyleBold9BorderRight.BorderRight = BorderStyle.Thin;
-			cellStyleBold9BorderRight.BorderTop = BorderStyle.Thin;
-			cellStyleBold9BorderRight.BorderBottom = BorderStyle.Thin;
-
-			cellStyleBold9BorderBottomTop.BorderLeft = BorderStyle.None;
-			cellStyleBold9BorderBottomTop.BorderRight = BorderStyle.None;
-			cellStyleBold9BorderBottomTop.BorderTop = BorderStyle.Thin;
-			cellStyleBold9BorderBottomTop.BorderBottom = BorderStyle.Thin;
-
-			foreach (ItemPatient patient in patients) {
-				double patientCostTotal = 0;
-				WriteArrayToRow(sheet, ref rowNumber, new object[] { patient.Name, "", "", patient.Documents }, fontBold9, cellStyleBold9);
-
-				foreach (ItemTreatment treatment in patient.Treatments) {
-					WriteArrayToRow(sheet, ref rowNumber, 
-						new object[] { "", treatment.Doctor, treatment.Date, "", "", treatment.TreatmentCostTotal }, fontBold8, cellStyleBold8);
-
-					foreach (ItemService service in treatment.Services) {
-						WriteArrayToRow(sheet, ref rowNumber, 
-							new object[] { "", string.Join(Environment.NewLine, treatment.Diagnoses), 
-							service.Code, service.Name, service.Count, service.Cost }, fontNormal8, cellStyleNormal8, wrapText:true);
-						patientCostTotal += service.Count * service.Cost;
-					}
-				}
-
-				WriteArrayToRow(sheet,
-					ref rowNumber,
-					new object[] { "Итого по пациенту:", "", "", "", "", patientCostTotal },
-					fontBold9,
-					cellStyleBold9BorderLeft,
-					true,
-					cellStyleBold9BorderBottomTop,
-					cellStyleBold9BorderRight);
-			}
-
-			if (!SaveAndCloseIWorkbook(workbook, resultFile))
-				return string.Empty;
-
-			return resultFile;
-		}
-
-		private void WriteArrayToRow(ISheet sheet,
-							   ref int rowNumber,
-							   object[] values,
-							   IFont font,
-							   ICellStyle cellStyle,
-							   bool createBorder = false,
-							   ICellStyle cellStyleMedium = null,
-							   ICellStyle cellStyleLast = null,
-							   bool wrapText = false) {
-			IRow row = null;
-			try { row = sheet.GetRow(rowNumber); } catch (Exception) { }
-
-			if (row == null)
-				row = sheet.CreateRow(rowNumber);
-
-			int columnNumber = 0;
-
-			for (int i = 0; i < values.Length; i++) {
-				object value = values[i];
-			    ICell cell = null;
-				try { cell = row.GetCell(columnNumber); } catch (Exception) { }
-
-				if (cell == null)
-					cell = row.CreateCell(columnNumber);
-				
-				if (createBorder) {
-					if (i == 0)
-						cell.CellStyle = cellStyle;
-					if (i == values.Length - 1)
-						cell.CellStyle = cellStyleLast;
-					else
-						cell.CellStyle = cellStyleMedium;
-				} else
-					cell.CellStyle = cellStyle;
-
-				cell.CellStyle.SetFont(font);
-
-				if (wrapText) {
-					cell.CellStyle.WrapText = true;
-					cell.CellStyle.VerticalAlignment = VerticalAlignment.Center;
-				}
-
-				if (value is double) {
-					cell.SetCellValue((double)value);
-				} else if (value is DateTime) {
-					cell.SetCellValue((DateTime)value);
-				} else {
-					cell.SetCellValue(value.ToString());
-				}
-
-				columnNumber++;
-			}
-
-			rowNumber++;
 		}
 
 
@@ -389,13 +238,268 @@ namespace ActOfProvidedServices {
 			}
 		}
 
-		public bool Process(string resultFile,
-					  double progressCurrent,
-					  string organization,
-					  string period,
-					  string contract,
-					  string dateDischarged,
-					  List<ItemPatient> patients) {
+
+
+		public string WritePatientsToExcelRenessans(List<ItemPatient> patients, MainModel.Type type, string resultFilePrefix, string templateFileName,
+			string sheetName = "", bool createNew = true) {
+			IWorkbook workbook = null;
+			ISheet sheet = null;
+			string resultFile = string.Empty;
+
+			if (createNew) {
+				if (!CreateNewIWorkbook(resultFilePrefix, templateFileName,
+					out workbook, out sheet, out resultFile, sheetName))
+					return string.Empty;
+			} else {
+				try {
+					using (FileStream stream = new FileStream(templateFileName, FileMode.Open, FileAccess.Read))
+						workbook = new XSSFWorkbook(stream);
+
+					sheet = workbook.GetSheet(sheetName);
+					resultFile = templateFileName;
+				} catch (Exception e) {
+					bw.ReportProgress(0, e.Message + Environment.NewLine + e.StackTrace);
+					return string.Empty;
+				}
+			}
+
+			int rowNumber = 0;
+			switch (type) {
+				case MainModel.Type.Renessans:
+					rowNumber = 16;
+					break;
+				case MainModel.Type.VTB:
+					rowNumber = 19;
+					break;
+				case MainModel.Type.Rosgosstrakh:
+					rowNumber = 19;
+					break;
+				case MainModel.Type.Reso:
+					rowNumber = 19;
+					break;
+				default:
+					break;
+			}
+
+			#region styles
+			IFont fontBold10 = workbook.CreateFont();
+			fontBold10.FontName = "Calibri";
+			fontBold10.FontHeightInPoints = 10;
+			fontBold10.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
+
+			IFont fontBold9 = workbook.CreateFont();
+			fontBold9.FontName = "Calibri";
+			fontBold9.FontHeightInPoints = 9;
+			fontBold9.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
+
+			IFont fontBold8 = workbook.CreateFont();
+			fontBold8.FontName = "Calibri";
+			fontBold8.FontHeightInPoints = 8;
+			fontBold8.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Bold;
+
+			IFont fontNormal8 = workbook.CreateFont();
+			fontNormal8.FontName = "Calibri";
+			fontNormal8.FontHeightInPoints = 8;
+			fontNormal8.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Normal;
+			
+			IFont fontNormal9 = workbook.CreateFont();
+			fontNormal9.FontName = "Calibri";
+			fontNormal9.FontHeightInPoints = 9;
+			fontNormal9.Boldweight = (short)NPOI.SS.UserModel.FontBoldWeight.Normal;
+
+			ICellStyle cellStyleBold10 = workbook.CreateCellStyle();
+			cellStyleBold10.SetFont(fontBold10);
+
+			ICellStyle cellStyleBold9 = workbook.CreateCellStyle();
+			cellStyleBold9.SetFont(fontBold9);
+
+			ICellStyle cellStyleBold8 = workbook.CreateCellStyle();
+			cellStyleBold8.SetFont(fontBold8);
+
+			ICellStyle cellStyleNormal8 = workbook.CreateCellStyle();
+			cellStyleNormal8.SetFont(fontNormal8);
+
+			ICellStyle cellStyleNormal9 = workbook.CreateCellStyle();
+			cellStyleNormal9.SetFont(fontNormal9);
+
+			ICellStyle cellStyleBold9BorderLeft = workbook.CreateCellStyle();
+			cellStyleBold9BorderLeft.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9BorderLeft.BorderLeft = BorderStyle.Thin;
+			cellStyleBold9BorderLeft.BorderRight = BorderStyle.None;
+			cellStyleBold9BorderLeft.BorderTop = BorderStyle.Thin;
+			cellStyleBold9BorderLeft.BorderBottom = BorderStyle.Thin;
+
+			ICellStyle cellStyleBold9BorderRight = workbook.CreateCellStyle();
+			cellStyleBold9BorderRight.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9BorderRight.BorderLeft = BorderStyle.None;
+			cellStyleBold9BorderRight.BorderRight = BorderStyle.Thin;
+			cellStyleBold9BorderRight.BorderTop = BorderStyle.Thin;
+			cellStyleBold9BorderRight.BorderBottom = BorderStyle.Thin;
+
+			ICellStyle cellStyleBold9BorderBottomTop = workbook.CreateCellStyle();
+			cellStyleBold9BorderBottomTop.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9BorderBottomTop.BorderLeft = BorderStyle.None;
+			cellStyleBold9BorderBottomTop.BorderRight = BorderStyle.None;
+			cellStyleBold9BorderBottomTop.BorderTop = BorderStyle.Thin;
+			cellStyleBold9BorderBottomTop.BorderBottom = BorderStyle.Thin;
+
+			ICellStyle cellStyleBold9Wrap = workbook.CreateCellStyle();
+			cellStyleBold9Wrap.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9Wrap.WrapText = true;
+			cellStyleBold9Wrap.VerticalAlignment = VerticalAlignment.Center;
+
+			ICellStyle cellStyleBold9Centered = workbook.CreateCellStyle();
+			cellStyleBold9Centered.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9Centered.Alignment = HorizontalAlignment.Center;
+
+			ICellStyle cellStyleBold8Wrap = workbook.CreateCellStyle();
+			cellStyleBold8Wrap.CloneStyleFrom(cellStyleBold8);
+			cellStyleBold8Wrap.WrapText = true;
+			cellStyleBold8Wrap.VerticalAlignment = VerticalAlignment.Center;
+
+			ICellStyle cellStyleNormal9Wrap = workbook.CreateCellStyle();
+			cellStyleNormal9Wrap.CloneStyleFrom(cellStyleNormal9);
+			cellStyleNormal9Wrap.WrapText = true;
+			cellStyleNormal9Wrap.VerticalAlignment = VerticalAlignment.Center;
+
+			ICellStyle cellStyleNormal8Wrap = workbook.CreateCellStyle();
+			cellStyleNormal8Wrap.CloneStyleFrom(cellStyleNormal8);
+			cellStyleNormal8Wrap.WrapText = true;
+			cellStyleNormal8Wrap.VerticalAlignment = VerticalAlignment.Center;
+
+			ICellStyle cellStyleBold9BorderAll = workbook.CreateCellStyle();
+			cellStyleBold9BorderAll.CloneStyleFrom(cellStyleBold9);
+			cellStyleBold9BorderAll.BorderLeft = BorderStyle.Medium;
+			cellStyleBold9BorderAll.BorderRight = BorderStyle.Medium;
+			cellStyleBold9BorderAll.BorderTop = BorderStyle.Medium;
+			cellStyleBold9BorderAll.BorderBottom = BorderStyle.Medium;
+
+			if (type == MainModel.Type.VTB ||
+				type == MainModel.Type.Rosgosstrakh) {
+				cellStyleBold9.Alignment = HorizontalAlignment.Center;
+				cellStyleBold9.VerticalAlignment = VerticalAlignment.Center;
+
+				cellStyleBold10.Alignment = HorizontalAlignment.Center;
+				cellStyleBold10.VerticalAlignment = VerticalAlignment.Center;
+
+				cellStyleNormal9.Alignment = HorizontalAlignment.Center;
+				cellStyleNormal9.VerticalAlignment = VerticalAlignment.Center;
+
+				cellStyleNormal9Wrap.Alignment = HorizontalAlignment.Center;
+				cellStyleNormal9Wrap.VerticalAlignment = VerticalAlignment.Center;
+			}
+
+			#endregion
+
+			foreach (ItemPatient patient in patients) {
+				double patientCostTotal = 0;
+				if (type == MainModel.Type.Renessans ||
+					type == MainModel.Type.Reso)
+					WriteArrayToRow(sheet, ref rowNumber, 
+						new (object, ICellStyle)[] {
+							(patient.Name, type == MainModel.Type.Renessans ? cellStyleBold9 : cellStyleBold10),
+							("", null), 
+							("", null),
+							(patient.Documents, cellStyleBold9) });
+
+
+				foreach (ItemTreatment treatment in patient.Treatments) {
+					if (type == MainModel.Type.Renessans)
+						WriteArrayToRow(sheet, ref rowNumber,
+							new (object, ICellStyle)[] { 
+								("", null),
+								(treatment.Doctor, cellStyleBold8), 
+								(treatment.Date, cellStyleBold8), 
+								("", null),
+								("", null),
+								(treatment.TreatmentCostTotal, cellStyleBold8) });
+
+					else if (type == MainModel.Type.Reso)
+						WriteArrayToRow(sheet, ref rowNumber,
+							new (object, ICellStyle)[] {
+								("", null),
+								(treatment.Date, cellStyleBold9Centered),
+								(treatment.Doctor, cellStyleBold9),
+								("", null),
+								("", null),
+								("", null),
+								(treatment.Filial, cellStyleNormal9)});
+
+					foreach (ItemService service in treatment.Services) {
+						if (type == MainModel.Type.Renessans) {
+							WriteArrayToRow(sheet, ref rowNumber,
+								new (object, ICellStyle)[] {
+									("", null),
+									(string.Join(Environment.NewLine, treatment.Diagnoses), cellStyleBold8Wrap),
+									(service.Code, cellStyleNormal8Wrap),
+									(service.Name, cellStyleNormal8Wrap),
+									(service.Count, cellStyleNormal8Wrap),
+									(service.Cost * service.Count, cellStyleNormal8Wrap) });
+							patientCostTotal += service.Count * service.Cost;
+
+						} else if (type == MainModel.Type.Reso) { 
+							WriteArrayToRow(sheet, ref rowNumber,
+								new (object, ICellStyle)[] {
+									("", null),
+									(string.Join(";", treatment.Diagnoses), cellStyleNormal9),
+									(service.Code, cellStyleNormal9),
+									(service.Name, cellStyleNormal9Wrap),
+									(service.Count, cellStyleNormal9),
+									(service.Cost * service.Count, cellStyleBold9) });
+							patientCostTotal += service.Count * service.Cost;
+
+						} else if (type == MainModel.Type.VTB ||
+							type == MainModel.Type.Rosgosstrakh) {
+							WriteArrayToRow(sheet, ref rowNumber, new (object, ICellStyle)[] {
+								(patient.Documents, cellStyleBold9),
+								("", null),
+								(patient.Name, cellStyleBold10),
+								(treatment.Date, cellStyleBold9),
+								(string.Join(";", treatment.Diagnoses), cellStyleNormal9),
+								("", null), //Не хватает номера зуба в исходных данных для ВТБ
+								(service.Code, cellStyleNormal9),
+								(service.Name, cellStyleNormal9Wrap),
+								(treatment.Doctor, cellStyleBold9),
+								(service.Count, cellStyleNormal9),
+								(service.Cost, cellStyleBold9),
+								(service.Count * service.Cost, cellStyleBold9)
+							});
+						}
+					}
+				}
+
+				if (type == MainModel.Type.Renessans)
+					WriteArrayToRow(sheet,
+						ref rowNumber,
+						new (object, ICellStyle)[] {
+							("Итого по пациенту:", cellStyleBold9BorderLeft), 
+						    ("", cellStyleBold9BorderBottomTop), 
+						    ("", cellStyleBold9BorderBottomTop), 
+						    ("", cellStyleBold9BorderBottomTop), 
+						    ("", cellStyleBold9BorderBottomTop),
+						    (patientCostTotal, cellStyleBold9BorderRight) });
+
+				else if (type == MainModel.Type.Reso)
+					WriteArrayToRow(sheet,
+						ref rowNumber,
+						new (object, ICellStyle)[] {
+							("Итого по пациенту:", cellStyleBold9BorderAll),
+							("", cellStyleBold9BorderAll),
+							("", cellStyleBold9BorderAll),
+							("", cellStyleBold9BorderAll),
+							("", cellStyleBold9BorderAll),
+							(patientCostTotal, cellStyleBold9BorderAll),
+							("", cellStyleBold9BorderAll) });
+			}
+
+			if (!SaveAndCloseIWorkbook(workbook, resultFile))
+				return string.Empty;
+
+			return resultFile;
+		}
+
+		public bool WriteEndingRenessans(MainModel.Type type, string resultFile, double progressCurrent,
+			string period, string contract, string dateDischarged, List<ItemPatient> patients) {
 			if (!OpenWorkbook(resultFile, out Excel.Application xlApp, out Excel.Workbook wb,
 				out Excel.Worksheet ws))
 				return false;
@@ -404,12 +508,25 @@ namespace ActOfProvidedServices {
 				int usedRows = ws.UsedRange.Rows.Count;
 
 				ws.Range["A3"].Value2 = "выписан " + dateDischarged;
-				ws.Range["A5"].Value2 = "Для организации: " + organization;
-				ws.Range["A6"].Value2 = "Договор №: " + contract;
+
+				if (type == MainModel.Type.Renessans)
+					ws.Range["A6"].Value2 = "Договор №: " + contract;
+				else if (type == MainModel.Type.VTB ||
+					type == MainModel.Type.Rosgosstrakh)
+					ws.Range["C6"].Value2 = contract;
+				else if (type == MainModel.Type.Reso)
+					ws.Range["B6"].Value2 = contract;
+
 				ws.Range["A8"].Value2 = "За период: " + period;
 
 				wb.Sheets["Итог"].Activate();
-				wb.ActiveSheet.Range["A1:F13"].Select();
+				string rangeToCopy = "A1:F13";
+				if (type == MainModel.Type.VTB ||
+					type == MainModel.Type.Rosgosstrakh ||
+					type == MainModel.Type.Reso)
+					rangeToCopy = "A1:G15";
+
+				wb.ActiveSheet.Range[rangeToCopy].Select();
 				xlApp.Selection.Copy();
 				wb.Sheets["Данные"].Activate();
 				ws.Range["A" + (usedRows + 1)].Select();
@@ -430,17 +547,40 @@ namespace ActOfProvidedServices {
 							totalServices += service.Count;
 						}
 
-				ws.Range["A" + (usedRows + 8)].EntireRow.RowHeight = 30;
-				ws.Range["F" + (usedRows + 1)].Value2 = totalCost;
-				ws.Range["F" + (usedRows + 2)].Value2 = totalCost - totalCostWithDiscount;
-				ws.Range["C" + (usedRows + 3)].Value2 = totalCostWithDiscount;
-				string cost = Slepov.Russian.СуммаПрописью.Сумма.Пропись(totalCostWithDiscount, Slepov.Russian.СуммаПрописью.Валюта.Рубли);
-				ws.Range["C" + (usedRows + 4)].Value2 = "''" + cost.Substring(0, 1).ToUpper() + cost.Substring(1, cost.Length - 1) + "'";
-				ws.Range["C" + (usedRows + 4) + ":F" + (usedRows + 4)].MergeCells = true;
-				ws.Range["C" + (usedRows + 4)].WrapText = true;
-				ws.Range["A" + (usedRows + 4)].EntireRow.RowHeight = 30;
-				ws.Range["C" + (usedRows + 5)].Value2 = patients.Count;
-				ws.Range["C" + (usedRows + 6)].Value2 = totalServices;
+				if (type == MainModel.Type.Renessans) {
+					ws.Range["A" + (usedRows + 8)].EntireRow.RowHeight = 30;
+					ws.Range["F" + (usedRows + 1)].Value2 = totalCost;
+					ws.Range["F" + (usedRows + 2)].Value2 = totalCost - totalCostWithDiscount;
+					ws.Range["C" + (usedRows + 3)].Value2 = totalCostWithDiscount;
+					string cost = Slepov.Russian.СуммаПрописью.Сумма.Пропись(totalCostWithDiscount, Slepov.Russian.СуммаПрописью.Валюта.Рубли);
+					ws.Range["C" + (usedRows + 4)].Value2 = "''" + cost.Substring(0, 1).ToUpper() + cost.Substring(1, cost.Length - 1) + "'";
+					ws.Range["C" + (usedRows + 4) + ":F" + (usedRows + 4)].MergeCells = true;
+					ws.Range["C" + (usedRows + 4)].WrapText = true;
+					ws.Range["A" + (usedRows + 4)].EntireRow.RowHeight = 30;
+					ws.Range["C" + (usedRows + 5)].Value2 = patients.Count;
+					ws.Range["C" + (usedRows + 6)].Value2 = totalServices;
+				} else if (type == MainModel.Type.VTB ||
+					type == MainModel.Type.Rosgosstrakh) {
+					ws.Range["D" + (usedRows + 2)].Value2 = string.Format("{0:0.##} руб", totalCost);
+					ws.Range["D" + (usedRows + 3)].Value2 = string.Format("{0:0.##} руб", totalCost - totalCostWithDiscount);
+					ws.Range["D" + (usedRows + 4)].Value2 = string.Format("{0:0.##} руб", totalCostWithDiscount);
+					string cost = Slepov.Russian.СуммаПрописью.Сумма.Пропись(
+						double.Parse(string.Format("{0:0.##}", totalCostWithDiscount)), Slepov.Russian.СуммаПрописью.Валюта.Рубли);
+					cost = cost.Substring(0, 1).ToUpper() + cost.Substring(1, cost.Length - 1);
+					ws.Range["D" + (usedRows + 5)].Value2 = cost;
+					ws.Range["D" + (usedRows + 6)].Value2 = "'" + patients.Count;
+					ws.Range["D" + (usedRows + 7)].Value2 = "'" + totalServices;
+				} else if (type == MainModel.Type.Reso) {
+					ws.Range["C" + (usedRows + 2)].Value2 = string.Format("{0:0.##} руб", totalCost);
+					ws.Range["C" + (usedRows + 3)].Value2 = string.Format("{0:0.##} руб", totalCost - totalCostWithDiscount);
+					ws.Range["C" + (usedRows + 4)].Value2 = string.Format("{0:0.##} руб", totalCostWithDiscount);
+					string cost = Slepov.Russian.СуммаПрописью.Сумма.Пропись(
+						double.Parse(string.Format("{0:0.##}", totalCostWithDiscount)), Slepov.Russian.СуммаПрописью.Валюта.Рубли);
+					cost = cost.Substring(0, 1).ToUpper() + cost.Substring(1, cost.Length - 1);
+					ws.Range["C" + (usedRows + 5)].Value2 = cost;
+					ws.Range["C" + (usedRows + 6)].Value2 = "'" + patients.Count;
+					ws.Range["C" + (usedRows + 7)].Value2 = "'" + totalServices;
+				}
 
 				ws.Range["A1"].Select();
 			} catch (Exception e) {
@@ -450,6 +590,46 @@ namespace ActOfProvidedServices {
 			SaveAndCloseWorkbook(xlApp, wb, ws);
 
 			return true;
+		}
+
+
+		private void WriteArrayToRow(ISheet sheet, ref int rowNumber, (object, ICellStyle)[] valuesStyles) {
+			IRow row = null;
+			try { row = sheet.GetRow(rowNumber); } catch (Exception) { }
+
+			if (row == null)
+				row = sheet.CreateRow(rowNumber);
+
+			int columnNumber = 0;
+
+			for (int i = 0; i < valuesStyles.Length; i++) {
+				(object, ICellStyle) valueStyle = valuesStyles[i];
+				ICell cell = null;
+				try { cell = row.GetCell(columnNumber); } catch (Exception) { }
+
+				if (cell == null)
+					cell = row.CreateCell(columnNumber);
+
+				if (valueStyle.Item2 != null)
+					cell.CellStyle = valueStyle.Item2;
+
+				object value = valueStyle.Item1;
+				if (value is double) {
+					cell.SetCellValue((double)value);
+				} else if (value is DateTime) {
+					cell.SetCellValue((DateTime)value);
+				} else {
+					try {
+						cell.SetCellValue(value.ToString());
+					} catch (Exception e) {
+						Console.WriteLine(e.Message + Environment.NewLine + e.StackTrace);
+					}
+				}
+
+				columnNumber++;
+			}
+
+			rowNumber++;
 		}
 
 	}
