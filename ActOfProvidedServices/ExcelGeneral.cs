@@ -414,17 +414,6 @@ namespace ActOfProvidedServices {
 								("", null),
 								(treatment.TreatmentCostTotal, cellStyleBold8) });
 
-					else if (type == MainModel.Type.Reso)
-						WriteArrayToRow(sheet, ref rowNumber,
-							new (object, ICellStyle)[] {
-								("", null),
-								(treatment.Date, cellStyleBold9Centered),
-								(treatment.Doctor, cellStyleBold9),
-								("", null),
-								("", null),
-								("", null),
-								(treatment.Filial, cellStyleNormal9)});
-
 					foreach (ItemService service in treatment.Services) {
 						if (type == MainModel.Type.Renessans) {
 							WriteArrayToRow(sheet, ref rowNumber,
@@ -437,7 +426,17 @@ namespace ActOfProvidedServices {
 									(service.Cost * service.Count, cellStyleNormal8Wrap) });
 							patientCostTotal += service.Count * service.Cost;
 
-						} else if (type == MainModel.Type.Reso) { 
+						} else if (type == MainModel.Type.Reso) {
+								WriteArrayToRow(sheet, ref rowNumber,
+									new (object, ICellStyle)[] {
+								("", null),
+								(treatment.Date, cellStyleBold9Centered),
+								(treatment.Doctor, cellStyleBold9),
+								("", null),
+								("", null),
+								("", null),
+								(treatment.Filial, cellStyleNormal9)});
+
 							WriteArrayToRow(sheet, ref rowNumber,
 								new (object, ICellStyle)[] {
 									("", null),
@@ -483,7 +482,7 @@ namespace ActOfProvidedServices {
 					WriteArrayToRow(sheet,
 						ref rowNumber,
 						new (object, ICellStyle)[] {
-							("Итого по пациенту:", cellStyleBold9BorderAll),
+							("Итого по клиенту:", cellStyleBold9BorderAll),
 							("", cellStyleBold9BorderAll),
 							("", cellStyleBold9BorderAll),
 							("", cellStyleBold9BorderAll),

@@ -100,9 +100,11 @@ namespace ActOfProvidedServices {
 								Code = patientCode
 							};
 
-							if (type == Type.Renessans ||
-								type == Type.Reso)
+							if (type == Type.Renessans)
 								currentPatient.Documents = "№ СП: " + currentPatient.Documents;
+
+							if (type == Type.Reso)
+								currentPatient.Documents = "ГП №  № СП: " + currentPatient.Documents;
 						}
 
 						string treatmentDoctor = ClearNameString(dataRow["F16"].ToString());
