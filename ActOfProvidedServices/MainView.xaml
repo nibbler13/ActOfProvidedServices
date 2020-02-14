@@ -6,11 +6,11 @@
         xmlns:local="clr-namespace:ActOfProvidedServices"
         mc:Ignorable="d"
         Title="Формирование акта по выполненным работам" 
-        Height="750" 
-        Width="450"
+        Height="480" 
+        Width="800"
         WindowStartupLocation="CenterScreen"
-        MinHeight="750"
-        MinWidth="450">
+        MinHeight="480"
+        MinWidth="800">
 
     <Window.DataContext>
         <local:MainViewModel/>
@@ -18,251 +18,234 @@
 
     <Grid Margin="10">
         <Grid Visibility="{Binding GridMainVisibility}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <GroupBox Header="Общая информация">
-                <Grid Margin="6">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="6"/>
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
+            <Grid VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <TextBlock Text="Дата выписки:"
+                <GroupBox Header="Общая информация">
+                    <Grid Margin="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Дата выписки:"
                                VerticalAlignment="Center"/>
-                    <DatePicker Grid.Column="2"
+                        <DatePicker Grid.Column="2"
                                 VerticalAlignment="Center"
                                 HorizontalAlignment="Left"
                                 SelectedDate="{Binding DateDischarged}"/>
 
-                    <TextBlock Grid.Row="2" 
+                        <TextBlock Grid.Row="2" 
                                Text="Договор:"/>
-                    <AdornerDecorator Grid.Row="2" 
+                        <AdornerDecorator Grid.Row="2" 
                              Grid.Column="2" >
-                        <TextBox 
+                            <TextBox 
                              Text="{Binding TextContract}">
-                            <local:WatermarkService.Watermark>
-                                <TextBlock Text=" 29/17 от 23.05.2017"/>
-                            </local:WatermarkService.Watermark>
-                        </TextBox>
-                    </AdornerDecorator>
+                                <local:WatermarkService.Watermark>
+                                    <TextBlock Text=" 29/17 от 23.05.2017"/>
+                                </local:WatermarkService.Watermark>
+                            </TextBox>
+                        </AdornerDecorator>
 
-                    <TextBlock Grid.Row="4" 
+                        <TextBlock Grid.Row="4" 
                                Text="Период:"/>
-                    <AdornerDecorator Grid.Row="4" 
+                        <AdornerDecorator Grid.Row="4" 
                              Grid.Column="2" >
-                        <TextBox 
+                            <TextBox 
                              Text="{Binding TextPeriod}">
-                            <local:WatermarkService.Watermark>
-                                <TextBlock Text=" 01.07.19-31.07.19"/>
-                            </local:WatermarkService.Watermark>
-                        </TextBox>
-                    </AdornerDecorator>
-                </Grid>
-            </GroupBox>
+                                <local:WatermarkService.Watermark>
+                                    <TextBlock Text=" 01.07.19-31.07.19"/>
+                                </local:WatermarkService.Watermark>
+                            </TextBox>
+                        </AdornerDecorator>
+                    </Grid>
+                </GroupBox>
 
-            <GroupBox Grid.Row="1"
+                <GroupBox Grid.Row="1" 
+                      Header="Книга Excel с информацией о лечениях">
+                    <Grid Margin="0,10,0,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Путь к файлу: "/>
+                        <AdornerDecorator Grid.Column="2" >
+                            <TextBox 
+                            Text="{Binding TextWorkbookPath}"
+                            IsReadOnly="True">
+                                <local:WatermarkService.Watermark>
+                                    <TextBlock Text=" Файл не выбран"/>
+                                </local:WatermarkService.Watermark>
+                            </TextBox>
+                        </AdornerDecorator>
+                        <Button Grid.Column="4" 
+                            Content="Выбрать" 
+                            Width="60"
+                            Command="{Binding CommandSelectWorkbook}"/>
+
+                        <TextBlock Grid.Row="2" 
+                               Text="Имя листа:"/>
+                        <AdornerDecorator Grid.Row="2" 
+                             Grid.Column="2" 
+                             Grid.ColumnSpan="3">
+                            <TextBox 
+                             Text="{Binding TextWorksheet}">
+                                <local:WatermarkService.Watermark>
+                                    <TextBlock Text=" Лист1"/>
+                                </local:WatermarkService.Watermark>
+                            </TextBox>
+                        </AdornerDecorator>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Организация, для которой формируется акт"
+                      Grid.Row="2"
+                      Margin="0,10,0,0">
+                    <StackPanel Orientation="Vertical" Margin="6">
+                        <RadioButton Content="АО &quot;Группа Ренессанс Страхование&quot; (Москва)"
+                                 IsChecked="{Binding IsCheckedRenessans}"/>
+                        <RadioButton Content="ООО СК &quot;ВТБ-Страхование&quot; (Москва)"
+                                 Margin="0,6,0,6"
+                                 IsChecked="{Binding IsCheckedVTB}"/>
+                        <RadioButton Content="ПАО СК &quot;Росгосстрах&quot; (Москва)"
+                                 IsChecked="{Binding IsCheckedRosgosstrakh}"/>
+                        <RadioButton Content="СПАО &quot;РЕСО-Гарантия&quot; (Москва)" 
+                                 Margin="0,6,0,0"
+                                 IsChecked="{Binding IsCheckedResoGaranty}"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <Button Grid.Row="3" 
+                        Content="Выполнить"
+                        HorizontalAlignment="Center"
+                        Width="80"
+                        Command="{Binding CoomandExecute}"
+                        Margin="0,10,0,0"/>
+            </Grid>
+
+
+            <GroupBox Grid.Column="1"
                       Header="Справка"
                       Background="LightYellow"
-                      Margin="0,10,0,10">
-                <Grid Margin="6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="6"/>
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                      Margin="10,0,0,0"
+                      VerticalAlignment="Center">
+                <StackPanel Margin="6"
+                            Orientation="Vertical">
 
                     <TextBlock Text="Для корректного распознавания файла столбцы&#x0a;должны находиться на следующих местах:"
                                Grid.ColumnSpan="3"
                                FontWeight="Bold"
                                TextWrapping="WrapWithOverflow"/>
-                    
-                    <TextBlock Grid.Row="2" 
-                               Text="Столбец №:"
-                               FontWeight="DemiBold"/>
-                    <TextBlock Grid.Row="2"
-                               Grid.Column="2"
-                               Text="Данные:"
-                               FontWeight="DemiBold"/>
-                    
-                    <TextBlock Grid.Row="4"
-                               Text="1 (A)"/>
-                    <TextBlock Grid.Row="4"
-                               Grid.Column="2"
-                               Text="ФИО пациента"/>
 
-                    <TextBlock Grid.Row="6"
-                               Text="5 (E)"/>
-                    <TextBlock Grid.Row="6"
-                               Grid.Column="2"
-                               Text="№ карты"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Столбец №:" FontWeight="DemiBold" Width="80"/>
+                        <TextBlock Text="Данные:" FontWeight="DemiBold"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="8"
-                               Text="6 (F)"/>
-                    <TextBlock Grid.Row="8"
-                               Grid.Column="2"
-                               Text="Диагноз"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="3 (C)" Width="80"/>
+                        <TextBlock Text="Полис пациента"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="10"
-                               Text="7 (G)"/>
-                    <TextBlock Grid.Row="10"
-                               Grid.Column="2"
-                               Text="Дата оказания услуги"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="4 (D)" Width="80"/>
+                        <TextBlock Text="ФИО пациента"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="12"
-                               Text="8 (H)"/>
-                    <TextBlock Grid.Row="12"
-                               Grid.Column="2"
-                               Text="Код услуги по прайсу"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="7 (G)" Width="80"/>
+                        <TextBlock Text="№ карты"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="14"
-                               Text="9 (I)"/>
-                    <TextBlock Grid.Row="14"
-                               Grid.Column="2"
-                               Text="Наименование услуги"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="8 (H)" Width="80"/>
+                        <TextBlock Text="Диагноз"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="16"
-                               Text="10 (J)"/>
-                    <TextBlock Grid.Row="16"
-                               Grid.Column="2"
-                               Text="Кол-во оказанных услуг"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="9 (I)" Width="80"/>
+                        <TextBlock Text="№ зуба"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="18"
-                               Text="11 (K)"/>
-                    <TextBlock Grid.Row="18"
-                               Grid.Column="2"
-                               Text="Стоимость услуги (сумма)"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="10 (J)" Width="80"/>
+                        <TextBlock Text="Дата оказания услуги"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="20"
-                               Text="13 (M)"/>
-                    <TextBlock Grid.Row="20"
-                               Grid.Column="2"
-                               Text="Итоговая сумма со скидкой"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="11 (K)" Width="80"/>
+                        <TextBlock Text="Код услуги по прайсу"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="22"
-                               Text="15 (O)"/>
-                    <TextBlock Grid.Row="22"
-                               Grid.Column="2"
-                               Text="Филиал (код)"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="12 (L)" Width="80"/>
+                        <TextBlock Text="Наименование услуги"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="24"
-                               Text="16 (P)"/>
-                    <TextBlock Grid.Row="24"
-                               Grid.Column="2"
-                               Text="Специалист, выполнивший услугу"/>
-                </Grid>
-            </GroupBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="13 (M)" Width="80"/>
+                        <TextBlock Text="Кол-во оказанных услуг"/>
+                    </StackPanel>
 
-            <GroupBox Grid.Row="2" 
-                      Header="Книга Excel с информацией о лечениях">
-                <Grid Margin="6">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="6"/>
-                        <ColumnDefinition/>
-                        <ColumnDefinition Width="6"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="14 (N)" Width="80"/>
+                        <TextBlock Text="Стоимость услуги (сумма)"/>
+                    </StackPanel>
 
-                    <TextBlock Text="Путь к файлу: "/>
-                    <AdornerDecorator Grid.Column="2" >
-                        <TextBox 
-                            Text="{Binding TextWorkbookPath}"
-                            IsReadOnly="True">
-                            <local:WatermarkService.Watermark>
-                                <TextBlock Text=" Файл не выбран"/>
-                            </local:WatermarkService.Watermark>
-                        </TextBox>
-                    </AdornerDecorator>
-                    <Button Grid.Column="4" 
-                            Content="Выбрать" 
-                            Width="60"
-                            Command="{Binding CommandSelectWorkbook}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="16 (P)" Width="80"/>
+                        <TextBlock Text="Итоговая сумма со скидкой"/>
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="2" 
-                               Text="Имя листа:"/>
-                    <AdornerDecorator Grid.Row="2" 
-                             Grid.Column="2" 
-                             Grid.ColumnSpan="3">
-                        <TextBox 
-                             Text="{Binding TextWorksheet}">
-                            <local:WatermarkService.Watermark>
-                                <TextBlock Text=" Общий"/>
-                            </local:WatermarkService.Watermark>
-                        </TextBox>
-                    </AdornerDecorator>
-                </Grid>
-            </GroupBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="17 (Q)" Width="80"/>
+                        <TextBlock Text="Филиал (код)"/>
+                    </StackPanel>
 
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="18 (R" Width="80"/>
+                        <TextBlock Text="Отделение"/>
+                    </StackPanel>
 
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="19 (S)" Width="80"/>
+                        <TextBlock Text="Специалист, выполнивший услугу"/>
+                    </StackPanel>
 
-            <GroupBox Header="Организация, для которой формируется акт"
-                      Grid.Row="3"
-                      Margin="0,10,0,0">
-                <StackPanel Orientation="Vertical" Margin="6">
-                    <RadioButton Content="АО &quot;Группа Ренессанс Страхование&quot; (Москва)"
-                                 IsChecked="{Binding IsCheckedRenessans}"/>
-                    <RadioButton Content="ООО СК &quot;ВТБ-Страхование&quot; (Москва)"
-                                 Margin="0,6,0,6"
-                                 IsChecked="{Binding IsCheckedVTB}"/>
-                    <RadioButton Content="ПАО СК &quot;Росгосстрах&quot; (Москва)"
-                                 IsChecked="{Binding IsCheckedRosgosstrakh}"/>
-                    <RadioButton Content="СПАО &quot;РЕСО-Гарантия&quot; (Москва)" 
-                                 Margin="0,6,0,0"
-                                 IsChecked="{Binding IsCheckedResoGaranty}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="42 (AP)" Width="80"/>
+                        <TextBlock Text="№ ГП"/>
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
 
-            <Button Grid.Row="10" Content="Выполнить"
-                    HorizontalAlignment="Center"
-                    Width="80"
-                    Command="{Binding CoomandExecute}"/>
 
         </Grid>
 

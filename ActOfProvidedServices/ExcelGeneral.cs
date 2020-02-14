@@ -89,7 +89,7 @@ namespace ActOfProvidedServices {
 			try {
 				using (OleDbConnection conn = new OleDbConnection()) {
 					conn.ConnectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + fileName + ";Mode=Read;" +
-						"Extended Properties='Excel 12.0 Xml;HDR=NO;'";
+						"Extended Properties='Excel 12.0 Xml;HDR=NO;IMEX=1'";
 
 					using (OleDbCommand comm = new OleDbCommand()) {
 						if (string.IsNullOrEmpty(sheetName)) {
@@ -400,8 +400,7 @@ namespace ActOfProvidedServices {
 							(patient.Name, type == MainModel.Type.Renessans ? cellStyleBold9 : cellStyleBold10),
 							("", null), 
 							("", null),
-							(patient.Documents, cellStyleBold9) });
-
+							(patient.Documents.Replace("@number", patient.GarantyMail), cellStyleBold9) });
 
 				foreach (ItemTreatment treatment in patient.Treatments) {
 					if (type == MainModel.Type.Renessans)
@@ -418,7 +417,7 @@ namespace ActOfProvidedServices {
 						if (type == MainModel.Type.Renessans) {
 							WriteArrayToRow(sheet, ref rowNumber,
 								new (object, ICellStyle)[] {
-									("", null),
+									(service.ToothNumber, cellStyleNormal8Wrap),
 									(string.Join(Environment.NewLine, treatment.Diagnoses), cellStyleBold8Wrap),
 									(service.Code, cellStyleNormal8Wrap),
 									(service.Name, cellStyleNormal8Wrap),
@@ -427,19 +426,19 @@ namespace ActOfProvidedServices {
 							patientCostTotal += service.Count * service.Cost;
 
 						} else if (type == MainModel.Type.Reso) {
-								WriteArrayToRow(sheet, ref rowNumber,
-									new (object, ICellStyle)[] {
-								("", null),
-								(treatment.Date, cellStyleBold9Centered),
-								(treatment.Doctor, cellStyleBold9),
-								("", null),
-								("", null),
-								("", null),
-								(treatment.Filial, cellStyleNormal9)});
-
 							WriteArrayToRow(sheet, ref rowNumber,
 								new (object, ICellStyle)[] {
 									("", null),
+									(treatment.Date, cellStyleBold9Centered),
+									(treatment.Doctor, cellStyleBold9),
+									("", null),
+									("", null),
+									("", null),
+									(treatment.Filial, cellStyleNormal9)});
+
+							WriteArrayToRow(sheet, ref rowNumber,
+								new (object, ICellStyle)[] {
+									(service.ToothNumber, cellStyleNormal9Wrap),
 									(string.Join(";", treatment.Diagnoses), cellStyleNormal9),
 									(service.Code, cellStyleNormal9),
 									(service.Name, cellStyleNormal9Wrap),
@@ -451,11 +450,11 @@ namespace ActOfProvidedServices {
 							type == MainModel.Type.Rosgosstrakh) {
 							WriteArrayToRow(sheet, ref rowNumber, new (object, ICellStyle)[] {
 								(patient.Documents, cellStyleBold9),
-								("", null),
+								(treatment.GarantyMail, cellStyleBold9),
 								(patient.Name, cellStyleBold10),
 								(treatment.Date, cellStyleBold9),
 								(string.Join(";", treatment.Diagnoses), cellStyleNormal9),
-								("", null), //Не хватает номера зуба в исходных данных для ВТБ
+								(service.ToothNumber, cellStyleNormal9),
 								(service.Code, cellStyleNormal9),
 								(service.Name, cellStyleNormal9Wrap),
 								(treatment.Doctor, cellStyleBold9),

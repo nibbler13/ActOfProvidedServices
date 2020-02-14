@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace ActOfProvidedServices {
 	class ItemService {
-		public string Code { get; set; }
-		public string Name { get; set; }
-		public double Count { get; set; }
-		public double Cost { get; set; }
-		public double CostFinal { get; set; }
+		public string Code { get; set; } = string.Empty;
+		public string Name { get; set; } = string.Empty;
+		public double Count { get; set; } = 0;
+		public double Cost { get; set; } = 0;
+		public double CostFinal { get; set; } = 0;
+		public string ToothNumber { get; set; } = string.Empty;
 	}
 }

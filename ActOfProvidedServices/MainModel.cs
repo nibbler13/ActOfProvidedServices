@@ -14,6 +14,22 @@ namespace ActOfProvidedServices {
 		private readonly string worksheetName;
 		private string template = string.Empty;
 
+		private const string COLUMN_PATIENT_POLICY = "F3";
+		private const string COLUMN_PATIENT_NAME = "F4";
+		private const string COLUMN_PATIENT_CARD = "F7";
+		private const string COLUMN_DIAGNOSIS = "F8";
+		private const string COLUMN_TOOTH_NUMBER = "F9";
+		private const string COLUMN_DATE = "F10";
+		private const string COLUMN_SERVICE_CODE = "F11";
+		private const string COLUMN_SERVICE_NAME = "F12";
+		private const string COLUMN_SERVICE_COUNT = "F13";
+		private const string COLUMN_SERVICE_COST = "F14";
+		private const string COLUMN_SERVICE_DISCOUNTED_COST = "F16";
+		private const string COLUMN_FILIAL = "F17";
+		private const string COLUMN_DEPARTMENT = "F18";
+		private const string COLUMN_EMPLOYEE_NAME = "F19";
+		private const string COLUMN_GARANTY_MAIL = "F42";
+
 		public MainModel(BackgroundWorker bw,
 			string workbookFilePath,
 			string worksheetName) {
@@ -69,21 +85,21 @@ namespace ActOfProvidedServices {
 					i++;
 					try {
 						bw.ReportProgress((int)(progressCurrent += progressStep));
-						string patientDocuments = dataRow["F2"].ToString();
+						string patientDocuments = dataRow[COLUMN_PATIENT_POLICY].ToString();
 						if (string.IsNullOrEmpty(patientDocuments)) {
-							bw.ReportProgress((int)progressCurrent, "!!! Отсутсвует номер полиса в строке: " + i + ", пропуск");
+							bw.ReportProgress((int)progressCurrent, "!!! Отсутсвует номер полиса в строке: " + (i + 1) + ", пропуск");
 							continue;
-						} else if (patientDocuments.Equals("№ полиса"))
+						} else if (patientDocuments.Equals("Полис"))
 							continue;
 
-						string patientCode = dataRow["F5"].ToString();
-						string patientName = dataRow["F1"].ToString();
+						string patientCode = dataRow[COLUMN_PATIENT_CARD].ToString();
+						string patientName = dataRow[COLUMN_PATIENT_NAME].ToString();
 
 						if (type == Type.Renessans)
 							patientName = ClearNameString(patientName);
 
-						if (currentPatient != null &&
-							!patientCode.Equals(currentPatient.Code)) {
+						if (currentPatient != null && 
+							(!patientCode.Equals(currentPatient.Code) || !currentPatient.Documents.Contains(patientDocuments))) {
 							if (currentTreatment != null) {
 								currentPatient.Treatments.Add(currentTreatment);
 								currentTreatment = null;
@@ -100,16 +116,24 @@ namespace ActOfProvidedServices {
 								Code = patientCode
 							};
 
-							if (type == Type.Renessans)
-								currentPatient.Documents = "№ СП: " + currentPatient.Documents;
+							//if (type == Type.Renessans)
+							//	currentPatient.Documents = "№ СП: " + currentPatient.Documents;
 
-							if (type == Type.Reso)
-								currentPatient.Documents = "ГП №  № СП: " + currentPatient.Documents;
+							if (type == Type.Reso ||
+								type == Type.Renessans)
+								currentPatient.Documents = "ГП № @number № СП: " + currentPatient.Documents;
 						}
 
-						string treatmentDoctor = ClearNameString(dataRow["F16"].ToString());
-						string treatmentDate = dataRow["F7"].ToString().Replace(" 0:00:00", "");
-						string treatmentFilial = dataRow["F15"].ToString();
+						string treatmentDoctor = ClearNameString(dataRow[COLUMN_EMPLOYEE_NAME].ToString());
+
+						string treatmentDate = dataRow[COLUMN_DATE].ToString();
+						if (double.TryParse(treatmentDate, out double rawDateDouble)) {
+							try {
+								treatmentDate = DateTime.FromOADate(rawDateDouble).ToShortDateString();
+							} catch (Exception) { }
+						}
+
+						string treatmentFilial = dataRow[COLUMN_FILIAL].ToString();
 						if (treatmentFilial.Equals("12"))
 							treatmentFilial = "СУЩ";
 						else if (treatmentFilial.Equals("5"))
@@ -134,12 +158,18 @@ namespace ActOfProvidedServices {
 							};
 						}
 
-						string serviceName = dataRow["F9"].ToString();
-						double serviceCount = Convert.ToDouble(dataRow["F10"].ToString());
-						string serviceCode = dataRow["F8"].ToString();
-						double serviceCost = Convert.ToDouble(dataRow["F11"].ToString());
-						double serviceCostFinal = Convert.ToDouble(dataRow["F13"].ToString());
-						string serviceDiagnosis = dataRow["F6"].ToString();
+						string serviceName = dataRow[COLUMN_SERVICE_NAME].ToString();
+						double serviceCount = Convert.ToDouble(dataRow[COLUMN_SERVICE_COUNT].ToString());
+						string serviceCode = dataRow[COLUMN_SERVICE_CODE].ToString();
+						double serviceCost = Convert.ToDouble(dataRow[COLUMN_SERVICE_COST].ToString());
+
+						string serviceCostFinalValue = dataRow[COLUMN_SERVICE_DISCOUNTED_COST].ToString();
+
+						double serviceCostFinal = 0;
+						if (!string.IsNullOrEmpty(serviceCostFinalValue))
+							serviceCostFinal = Convert.ToDouble(serviceCostFinalValue) / serviceCount;
+
+						string serviceDiagnosis = dataRow[COLUMN_DIAGNOSIS].ToString();
 
 						ItemService itemService = new ItemService() {
 							Name = serviceName,
@@ -159,6 +189,21 @@ namespace ActOfProvidedServices {
 						}
 
 						currentTreatment.TreatmentCostTotal += serviceCount * serviceCost;
+
+						string department = dataRow[COLUMN_DEPARTMENT].ToString();
+						if (!string.IsNullOrEmpty(department))
+							if (department.ToLower().Contains("стоматология")) {
+								string toothNumber = dataRow[COLUMN_TOOTH_NUMBER].ToString();
+								itemService.ToothNumber = toothNumber;
+							}
+
+						string garantyMail = dataRow[COLUMN_GARANTY_MAIL].ToString();
+						if (!string.IsNullOrEmpty(garantyMail)) {
+							currentTreatment.GarantyMail = garantyMail;
+
+							if (string.IsNullOrEmpty(currentPatient.GarantyMail))
+								currentPatient.GarantyMail = garantyMail;
+						}
 					} catch (Exception e) {
 						bw.ReportProgress((int)progressCurrent, "!!! Строка: " + i + ", ошибка: " + e.Message);
 					}
