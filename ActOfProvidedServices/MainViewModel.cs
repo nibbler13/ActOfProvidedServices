@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -33,8 +34,6 @@ namespace ActOfProvidedServices {
 			}
 		}
 
-		public string TextWorksheet { get; set; }
-
 
 		private ICommand commandSelectWorkbook;
 		public ICommand CommandSelectWorkbook {
@@ -43,10 +42,10 @@ namespace ActOfProvidedServices {
 			}
 		}
 
-		private ICommand coomandExecute;
-		public ICommand CoomandExecute {
+		private ICommand commandExecute;
+		public ICommand CommandExecute {
 			get {
-				return coomandExecute ?? (coomandExecute = new CommandHandler(() => Execute(), () => true));
+				return commandExecute ?? (commandExecute = new CommandHandler(() => Execute(), () => true));
 			}
 		}
 
@@ -123,6 +122,30 @@ namespace ActOfProvidedServices {
 		public bool IsCheckedRosgosstrakh { get; set; }
 		public bool IsCheckedResoGaranty { get; set; }
 
+		public ObservableCollection<string> SheetNames { get; set; } = new ObservableCollection<string>();
+
+		private string selectedSheetName;
+		public string SelectedSheetName {
+			get { return selectedSheetName; }
+			set {
+				if (value != selectedSheetName) {
+					selectedSheetName = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
+
+
+		private bool sheetNamesComboboxEnabled = false;
+		public bool SheetNamesComboboxEnabled {
+			get { return sheetNamesComboboxEnabled; }
+			set {
+				if (value != sheetNamesComboboxEnabled) {
+					sheetNamesComboboxEnabled = value;
+					NotifyPropertyChanged();
+				}
+			}
+		}
 
 
 		public void CloseResult() {
@@ -133,6 +156,10 @@ namespace ActOfProvidedServices {
 		}
 		
 		public void SelectWorkbookFile() {
+			SheetNames.Clear();
+			SheetNamesComboboxEnabled = false;
+			SelectedSheetName = string.Empty;
+
 			OpenFileDialog openFileDialog = new OpenFileDialog();
 			openFileDialog.Filter = "Книга Excel (*.xls*)|*.xls*";
 			openFileDialog.CheckFileExists = true;
@@ -140,8 +167,14 @@ namespace ActOfProvidedServices {
 			openFileDialog.Multiselect = false;
 			openFileDialog.RestoreDirectory = true;
 
-			if (openFileDialog.ShowDialog() == true)
+			if (openFileDialog.ShowDialog() == true) {
 				TextWorkbookPath = openFileDialog.FileName;
+				ExcelGeneral.ReadSheetNames(TextWorkbookPath).ForEach(SheetNames.Add);
+				SheetNamesComboboxEnabled = true;
+
+				if (SheetNames.Count > 0)
+					SelectedSheetName = SheetNames[0];
+			}
 		}
 
 
@@ -154,7 +187,7 @@ namespace ActOfProvidedServices {
 			if (string.IsNullOrEmpty(TextWorkbookPath))
 				errors = "Не выбран файл книги Excel" + Environment.NewLine;
 
-			if (string.IsNullOrEmpty(TextWorksheet))
+			if (string.IsNullOrEmpty(SelectedSheetName))
 				errors += "Не указано имя листа" + Environment.NewLine;
 
 			if (!IsCheckedRenessans && !IsCheckedResoGaranty &&
@@ -207,7 +240,7 @@ namespace ActOfProvidedServices {
 			MainModel mainModel = new MainModel(
 				(sender as BackgroundWorker),
 				TextWorkbookPath,
-				TextWorksheet);
+				SelectedSheetName);
 
 			MainModel.Type type;
 			if (IsCheckedRenessans)

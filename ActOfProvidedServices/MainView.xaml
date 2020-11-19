@@ -112,16 +112,13 @@
 
                         <TextBlock Grid.Row="2" 
                                Text="Имя листа:"/>
-                        <AdornerDecorator Grid.Row="2" 
-                             Grid.Column="2" 
-                             Grid.ColumnSpan="3">
-                            <TextBox 
-                             Text="{Binding TextWorksheet}">
-                                <local:WatermarkService.Watermark>
-                                    <TextBlock Text=" Лист1"/>
-                                </local:WatermarkService.Watermark>
-                            </TextBox>
-                        </AdornerDecorator>
+                        <ComboBox Grid.Row="2" 
+                                  Grid.Column="2" 
+                                  Grid.ColumnSpan="3"
+                                  ItemsSource="{Binding SheetNames}"
+                                  SelectedItem="{Binding SelectedSheetName}"
+                                  IsEnabled="{Binding SheetNamesComboboxEnabled}">
+                        </ComboBox>
                     </Grid>
                 </GroupBox>
 
@@ -146,7 +143,7 @@
                         Content="Выполнить"
                         HorizontalAlignment="Center"
                         Width="80"
-                        Command="{Binding CoomandExecute}"
+                        Command="{Binding CommandExecute}"
                         Margin="0,10,0,0"/>
             </Grid>
 

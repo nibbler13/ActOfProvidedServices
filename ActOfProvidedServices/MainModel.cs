@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace ActOfProvidedServices {
 	class MainModel {
@@ -80,6 +81,7 @@ namespace ActOfProvidedServices {
 				ItemTreatment currentTreatment = null;
 
 				double progressStep = 20.0d / (double)dataTable.Rows.Count;
+				int errorCount = 0;
 				int i = 0;
 				foreach (DataRow dataRow in dataTable.Rows) {
 					i++;
@@ -206,6 +208,25 @@ namespace ActOfProvidedServices {
 						}
 					} catch (Exception e) {
 						bw.ReportProgress((int)progressCurrent, "!!! Строка: " + i + ", ошибка: " + e.Message);
+						errorCount++;
+
+						if (errorCount == 20) {
+							MessageBoxResult result = MessageBoxResult.No;
+
+							Application.Current.Dispatcher.Invoke(() => {
+								result = MessageBox.Show(
+									Application.Current.MainWindow,
+									"В процессе считывания файла возникло более 20 ошибок, остановить выполнение?",
+									"",
+									MessageBoxButton.YesNo,
+									MessageBoxImage.Question);
+							});
+
+							if (result == MessageBoxResult.Yes) {
+								bw.ReportProgress((int)progressCurrent, "Обработка закончена с ошибками");
+								return;
+							}
+						};
 					}
 				}
 
